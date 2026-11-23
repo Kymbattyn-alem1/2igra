@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кто? Что? — мини-игра</title>
+<style>
+:root{--navy:#20364b;--teal:#39a69e;--coral:#e9806d;--cream:#fff9ed;--ink:#273747}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#fff7e9,#e6f4f1);font-family:Arial,sans-serif;color:var(--ink)}
+header{background:var(--navy);color:white;text-align:center;padding:22px 15px}header small{color:#aee7dc;letter-spacing:2px;font-weight:bold}
+h1{font-size:clamp(26px,5vw,38px);margin:8px 0}header p{margin:0;color:#dce8ec}
+main{max-width:820px;margin:25px auto;padding:0 15px 40px}.bar{display:flex;justify-content:space-between;font-weight:bold;color:#566879;gap:12px}
+.track{height:9px;background:#dce8e5;border-radius:20px;margin:12px 0 20px;overflow:hidden}.fill{height:100%;width:0;background:linear-gradient(90deg,var(--teal),#f4c95d);transition:.3s}
+.panel{background:white;border:1px solid #eee5d8;border-radius:23px;padding:clamp(20px,4vw,34px);box-shadow:0 14px 35px #20364b12}
+.view{display:none}.view.on{display:block}.tag{display:inline-block;background:#e8f6f3;color:#177c75;border-radius:30px;padding:7px 12px;font-size:12px;font-weight:bold}
+h2{color:var(--navy);margin:12px 0}.desc{line-height:1.6;color:#5b6c7a}
+.pictures{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin:22px 0}.pic{background:#fff8e9;border:2px solid #f1dfbb;border-radius:18px;padding:16px;min-width:120px;text-align:center}.emoji{font-size:42px}.pic b{display:block;color:var(--navy);margin-top:5px}
+.question{font-size:23px;font-weight:bold;text-align:center;margin:24px 0}.word{font-size:clamp(34px,7vw,54px);color:#bd6658;text-align:center;font-weight:bold;margin:16px 0 24px}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:13px}.answer,button{font:inherit;font-weight:bold;border:0;border-radius:14px;padding:15px;cursor:pointer}.answer{background:#eef6f5;color:var(--navy);border:2px solid #d9e9e6;font-size:17px}.answer:hover{border-color:var(--teal);background:#e6f6f2}.answer:disabled{opacity:.8;cursor:default}
+button.primary{background:var(--teal);color:white;margin-top:18px}.feedback{display:none;margin-top:17px;padding:13px;border-radius:12px;line-height:1.5}.feedback.show{display:block}.yes{background:#e6f6eb;color:#23633b}.no{background:#fff0e9;color:#914a3e}
+.score{font-size:48px;color:var(--teal);font-weight:bold;margin:15px 0}
+@media(max-width:480px){.answers{grid-template-columns:1fr}.question{font-size:20px}}
+</style></head>
+<body>
+<header><small>ИНТЕРАКТИВНАЯ МИНИ-ИГРА</small><h1>Кто? Что?</h1><p>Одушевлённые и неодушевлённые существительные</p></header>
+<main>
+<div class="bar"><span id="progressText">Раунд 1 из 8</span><span id="scoreText">Баллы: 0</span></div><div class="track"><div class="fill" id="fill"></div></div>
+<section class="panel view on" id="intro">
+<span class="tag">МИССИЯ ДЛЯ ЮНЫХ ГРАММАТИСТОВ</span><h2>Помоги котику рассортировать слова!</h2>
+<p class="desc">Определи, кого или что называет существительное. Если слово отвечает на вопрос «кто?» — выбери «Одушевлённое». Если на вопрос «что?» — выбери «Неодушевлённое».</p>
+<div class="pictures"><div class="pic"><div class="emoji">🐈</div><b>КТО?</b><small>кот</small></div><div class="pic"><div class="emoji">📚</div><b>ЧТО?</b><small>книга</small></div></div>
+<button class="primary" onclick="begin()">Начать игру →</button></section>
+<section class="panel view" id="play"><span class="tag" id="roundTag">РАУНД 1</span><div class="question">К какой группе относится слово?</div><div class="word" id="word">кот</div>
+<div class="answers"><button class="answer" onclick="choose(0)">🐾 Одушевлённое</button><button class="answer" onclick="choose(1)">📦 Неодушевлённое</button></div>
+<div class="feedback" id="feedback" aria-live="polite"></div><button class="primary" id="next" style="display:none" onclick="advance()">Следующее слово →</button></section>
+<section class="panel view" id="done"><span class="tag">МИССИЯ ЗАВЕРШЕНА</span><h2 id="finishTitle">Отличная работа!</h2><div class="score" id="final">0 / 8</div><p class="desc" id="message"></p><button class="primary" onclick="begin()">Играть ещё раз ↻</button></section>
+</main>
+<script>
+const tasks=[
+["кот",0,"Кот — живое существо, отвечает на вопрос «кто?»."],
+["стол",1,"Стол — предмет, отвечает на вопрос «что?»."],
+["учитель",0,"Учитель — человек, отвечает на вопрос «кто?»."],
+["цветок",1,"Цветок — растение как предмет речи, отвечает на вопрос «что?»."],
+["собака",0,"Собака — животное, отвечает на вопрос «кто?»."],
+["телефон",1,"Телефон — предмет, отвечает на вопрос «что?»."],
+["девочка",0,"Девочка — человек, отвечает на вопрос «кто?»."],
+["облако",1,"Облако — явление природы, отвечает на вопрос «что?»."]
+];let n=0,points=0,locked=false;
+function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));document.getElementById(id).classList.add('on')}
+function update(){document.getElementById('progressText').textContent='Раунд '+(n+1)+' из 8';document.getElementById('scoreText').textContent='Баллы: '+points;document.getElementById('fill').style.width=(n/8*100)+'%'}
+function begin(){n=0;points=0;show('play');load()}
+function load(){locked=false;update();document.getElementById('roundTag').textContent='РАУНД '+(n+1);document.getElementById('word').textContent=tasks[n][0];document.getElementById('feedback').className='feedback';document.getElementById('next').style.display='none';document.querySelectorAll('.answer').forEach(b=>{b.disabled=false;b.style.borderColor='';})}
+function choose(v){if(locked)return;locked=true;let ok=v===tasks[n][1];if(ok)points++;document.querySelectorAll('.answer').forEach((b,i)=>{b.disabled=true;if(i===tasks[n][1])b.style.borderColor='#39a69e';if(i===v&&!ok)b.style.borderColor='#e9806d'});let f=document.getElementById('feedback');f.className='feedback show '+(ok?'yes':'no');f.textContent=(ok?'Верно! ⭐ ':'Попробуй запомнить. ')+tasks[n][2];document.getElementById('scoreText').textContent='Баллы: '+points;document.getElementById('next').style.display='inline-block';document.getElementById('next').textContent=n===7?'Посмотреть результат →':'Следующее слово →'}
+function advance(){if(!locked)return;n++;if(n===8){show('done');document.getElementById('fill').style.width='100%';document.getElementById('final').textContent=points+' / 8';let t='Хорошее начало!';let m='Повтори вопросы «кто?» и «что?», а затем попробуй ещё раз.';if(points>=7){t='Блестяще! 🏆';m='Ты отлично различаешь одушевлённые и неодушевлённые существительные.'}else if(points>=5){t='Отличная работа! ⭐';m='Ты хорошо справился(лась). Закрепи тему ещё одной попыткой.'}document.getElementById('finishTitle').textContent=t;document.getElementById('message').textContent=m}else load()}
+</script></body></html>
